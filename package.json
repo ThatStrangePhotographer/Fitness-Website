@@ -4,8 +4,8 @@
   "version": "1.0.0",
   "description": "Six-month Royal Navy fitness build: training plan, meals, quick 15s and a bleep test.",
   "scripts": {
-    "dev": "wrangler pages dev public --kv SEAREADY",
-    "deploy": "wrangler pages deploy public --project-name sea-ready"
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
   },
   "devDependencies": {
     "wrangler": "^4"

@@ -1,0 +1,17 @@
+{
+  // Cloudflare Workers config. "name" must match your Worker's name in the Cloudflare dashboard.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "sea-ready",
+  "main": "src/worker.js",
+  "compatibility_date": "2025-09-01",
+  // Only the /public folder is published as the website.
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS"
+  },
+  // Storage for device sync and Strava sign-in. Wrangler creates this namespace on the first deploy.
+  "kv_namespaces": [{ "binding": "SEAREADY" }],
+  // Keep STRAVA_CLIENT_ID / STRAVA_CLIENT_SECRET set in the dashboard when deploying.
+  "keep_vars": true,
+  "observability": { "enabled": true }
+}

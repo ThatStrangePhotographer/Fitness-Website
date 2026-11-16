@@ -9,12 +9,14 @@ A 26-week fitness tracker for getting to the Royal Navy Pre-Joining Fitness Test
 - **Sync**: Strava sign-in, Apple Health export import, and sync between your devices.
 
 ```
+wrangler.jsonc     Cloudflare Workers config
+src/worker.js      Worker entry: serves /public, routes /api/*
 public/            the website (everything Cloudflare serves)
   index.html       the whole app
   sw.js            offline support
   manifest.webmanifest, icons/   "Add to Home Screen" support
   _headers         security / caching headers
-functions/api/     Cloudflare Pages Functions (the small backend)
+functions/api/     the API route handlers (also usable as Pages Functions)
   health.js        tells the app which features are configured
   state.js         saves / loads your data for cross-device sync
   strava/          Strava sign-in (OAuth) and activity download
@@ -38,46 +40,38 @@ git push -u origin main
 
 (The repo is already initialised with a first commit.)
 
-## 2. Deploy on Cloudflare Pages
+## 2. Deploy on Cloudflare (Workers)
 
-1. In the Cloudflare dashboard go to **Workers & Pages → Create → Pages → Connect to Git**.
-2. Pick the `sea-ready` repo.
-3. Build settings:
-   - Framework preset: **None**
-   - Build command: *(leave empty)*
-   - Build output directory: **`public`**
-4. Click **Save and Deploy**. You'll get a URL like `https://sea-ready.pages.dev`.
+This repo deploys as a **Cloudflare Worker with static assets**. `wrangler.jsonc` tells Cloudflare to publish only the `public/` folder and to run `src/worker.js` for the `/api/*` routes.
+
+1. In the Cloudflare dashboard go to **Workers & Pages → Create → Import a repository**, and pick `sea-ready`.
+2. Leave the build command empty. The deploy command is `npx wrangler deploy`, which is the default.
+3. The Worker's name in Cloudflare must match `"name"` in `wrangler.jsonc` (`sea-ready`). If you named it something else, change that line to match.
+4. To use your own domain: Worker → **Settings → Domains & Routes → Add → Custom domain**, e.g. `fitness.george-b.com`.
 
 Every `git push` to `main` now redeploys automatically.
 
-## 3. Turn on device sync (KV storage)
+## 3. Device sync (KV storage)
 
-1. **Storage & Databases → KV → Create namespace**. Name it `sea-ready`.
-2. Open your Pages project → **Settings → Bindings → Add → KV namespace**.
-   - Variable name: **`SEAREADY`** (exactly this)
-   - KV namespace: `sea-ready`
-3. Redeploy: **Deployments → … → Retry deployment**, or push a commit.
+Nothing to do. On the first deploy, Wrangler creates a KV namespace for the `SEAREADY` binding automatically.
 
-Then, on your first device, go to **Profile → Sync between devices → Turn on sync**. Copy the key. On each other device, open the site, go to Profile and paste the key into **Link this device**.
-
-The key works as the password to your data, so keep it private. The server only stores a hash of it.
+Then, on your first device, go to **Profile → Sync between devices → Turn on sync**. Copy the key. On each other device, open the site, go to Profile and paste the key into **Link this device**. The key works as the password to your data, so keep it private. The server only stores a hash of it.
 
 ## 4. Connect Strava
 
 1. Go to <https://www.strava.com/settings/api> and create an API application:
-   - Application name: anything, e.g. *Sea Ready*
-   - Website: your Pages URL
-   - **Authorization Callback Domain**: your Pages domain with no `https://`, e.g. `sea-ready.pages.dev` (or your custom domain)
+   - Website: your site URL
+   - **Authorization Callback Domain**: your domain with no `https://`, e.g. `fitness.george-b.com`
 2. Copy the **Client ID** and **Client Secret**.
-3. In your Pages project → **Settings → Variables and Secrets** (Production):
-   - `STRAVA_CLIENT_ID` = your client ID (type: Text)
-   - `STRAVA_CLIENT_SECRET` = your client secret (type: **Secret**)
-4. Redeploy.
-5. In the app: **Sync → Connect Strava**. Approve on Strava, and you'll come back with your activities pulled in.
+3. In the Worker → **Settings → Variables and Secrets → Add**, add both as type **Secret**:
+   - `STRAVA_CLIENT_ID`
+   - `STRAVA_CLIENT_SECRET`
+4. Redeploy: **Deployments → Retry/redeploy**, or push a commit.
+5. In the app: **Sync → Connect Strava**.
 
-Notes:
-- New Strava API apps allow one connected athlete (you). That's fine for personal use.
-- If you add a custom domain later, update the Authorization Callback Domain on Strava to match.
+New Strava API apps allow one connected athlete (you), which is fine for personal use.
+
+To check the setup, open `https://<your-domain>/api/health`. It should show `"kv":true,"strava":true`.
 
 ## 5. Apple Fitness / Apple Watch
 
@@ -99,7 +93,7 @@ For the bleep test, turn **silent mode off** and the volume up.
 ```bash
 npm install
 cp .dev.vars.example .dev.vars   # add your Strava keys
-npm run dev                      # http://localhost:8788
+npm run dev                      # http://localhost:8787
 ```
 
 For Strava locally, add `localhost` as a callback domain on your Strava app.
